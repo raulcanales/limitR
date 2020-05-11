@@ -1,2 +1,2 @@
 # limitR
-Simple rate limiter
+Simple yet awesome rate limiter
