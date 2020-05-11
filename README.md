@@ -1,0 +1,2 @@
+# limitR
+Simple rate limiter
