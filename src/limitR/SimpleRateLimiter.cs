@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -10,7 +9,7 @@ namespace limitR
     {
         private readonly int _maxCalls;
         private readonly TimeSpan _timeWindow;
-        private readonly ConcurrentDictionary<long, bool> _stackCalls;
+        private static readonly ConcurrentDictionary<DateTime, bool> _stackCalls = new ConcurrentDictionary<DateTime, bool>();
         private object _lock = new object();
 
         public SimpleRateLimiter(int maxCalls)
@@ -22,7 +21,6 @@ namespace limitR
         {
             _maxCalls = maxCalls;
             _timeWindow = timeWindow;
-            _stackCalls = new ConcurrentDictionary<long, bool>();
         }
 
         public void Invoke(Action call) => Invoke(call, _maxCalls);
@@ -61,7 +59,6 @@ namespace limitR
             return default;
         }
 
-
         /// <summary>
         /// Checks if the request can be invoked, based on the amount of calls already registered
         /// </summary>        
@@ -70,9 +67,8 @@ namespace limitR
             var isAllowed = false;
             lock (_lock)
             {
-                var now = Stopwatch.GetTimestamp();
-                var fromDate = now - _timeWindow.Ticks;
-
+                var now = TimeProvider.Current.Now;
+                var fromDate = now.Add(-_timeWindow);
                 if (_stackCalls.Count(kv => kv.Key >= fromDate) < maxCalls)
                     isAllowed = _stackCalls.TryAdd(now, true);
             }
@@ -85,7 +81,7 @@ namespace limitR
         /// </summary>
         private Task CleanUp()
         {
-            var fromDate = Stopwatch.GetTimestamp() - _timeWindow.Ticks;
+            var fromDate = TimeProvider.Current.Now.Add(-_timeWindow);
             foreach (var key in _stackCalls.Keys.Where(k => k < fromDate))
                 _stackCalls.TryRemove(key, out var _);
             return Task.CompletedTask;
