@@ -13,11 +13,21 @@ namespace limitR
         {
             get
             {
-                if (_instance != null)
+                if (_instance == null)
                     _instance = new TimeProvider();
 
                 return _instance;
             }
+        }
+
+        public void SetTime(DateTime newTime)
+        {
+            _mockedTime = newTime;
+        }
+
+        public void ResetTime()
+        {
+            _mockedTime = null;
         }
 
         public DateTime Now => _mockedTime ?? DateTime.Now; 

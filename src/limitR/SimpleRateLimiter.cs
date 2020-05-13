@@ -9,7 +9,7 @@ namespace limitR
     {
         private readonly int _maxCalls;
         private readonly TimeSpan _timeWindow;
-        private static readonly ConcurrentDictionary<DateTime, bool> _stackCalls = new ConcurrentDictionary<DateTime, bool>();
+        private static readonly ConcurrentDictionary<long, bool> _stackCalls = new ConcurrentDictionary<long, bool>();
         private object _lock = new object();
 
         public SimpleRateLimiter(int maxCalls)
@@ -68,9 +68,9 @@ namespace limitR
             lock (_lock)
             {
                 var now = TimeProvider.Current.Now;
-                var fromDate = now.Add(-_timeWindow);
+                var fromDate = now.Add(-_timeWindow).Ticks;
                 if (_stackCalls.Count(kv => kv.Key >= fromDate) < maxCalls)
-                    isAllowed = _stackCalls.TryAdd(now, true);
+                    isAllowed = _stackCalls.TryAdd(now.Ticks, true);
             }
 
             return isAllowed;
@@ -81,7 +81,7 @@ namespace limitR
         /// </summary>
         private Task CleanUp()
         {
-            var fromDate = TimeProvider.Current.Now.Add(-_timeWindow);
+            var fromDate = TimeProvider.Current.Now.Add(-_timeWindow).Ticks;
             foreach (var key in _stackCalls.Keys.Where(k => k < fromDate))
                 _stackCalls.TryRemove(key, out var _);
             return Task.CompletedTask;
